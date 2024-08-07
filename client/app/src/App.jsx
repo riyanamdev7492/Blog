@@ -1,8 +1,6 @@
 import React from "react";
-import ReactDOM from 'react-dom';
 import { QueryClient, QueryClientProvider } from "react-query";
-import CreateArticle from "./components/CreateArticle";
-import Article from "./components/Article";
+import Article from "./pages/Article";
 
 function App() {
   const queryClient = new QueryClient();
