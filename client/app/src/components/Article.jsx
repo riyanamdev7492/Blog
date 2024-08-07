@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -6,22 +6,56 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
+import UpdateArticle from './UpdateArticle';
 
 const fetchArticles = async () => {
   const { data } = await axios.get('http://127.0.0.1:8000/api/articles/');
   return data;
-}
+};
+
+const deleteArticle = async (id) => {
+  await axios.delete(`http://127.0.0.1:8000/api/articles/${id}`);
+};
 
 const Article = () => {
-  const { data, error, isLoading } = useQuery('articles', fetchArticles);
+  const queryClient = useQueryClient();
+  const { data, error, isLoading, refetch } = useQuery('articles', fetchArticles);
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const deleteMutation = useMutation(deleteArticle, {
+    onSuccess: () => {
+      queryClient.invalidateQueries('articles');
+    }
+  });
+
+  const handleOpenModal = (article) => {
+    setSelectedArticle(article);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedArticle(null);
+  };
+
+  const handleDelete = (id) => {
+    deleteMutation.mutate(id);
+  };
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
 
   return (
     <>
+      <UpdateArticle
+        open={modalOpen}
+        handleClose={handleCloseModal}
+        articleToUpdate={selectedArticle || {}}
+        refetchArticles={refetch}
+      />
       <div className="container xl:max-w-screen-lg md:max-w-[920px] mx-auto py-5">
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 650 }} aria-label="simple table">
@@ -45,8 +79,22 @@ const Article = () => {
                   </TableCell>
                   <TableCell align="center">{row.title}</TableCell>
                   <TableCell align="center">{row.body}</TableCell>
-                  <TableCell align="center"><button className='bg-blue-700 text-white px-4 py-2 rounded-md'>Update</button></TableCell>
-                  <TableCell align="center"><button className='bg-red-600 text-white px-4 py-2 rounded-md'>Delete</button></TableCell>
+                  <TableCell align="center">
+                    <button
+                      onClick={() => handleOpenModal(row)}
+                      className='bg-blue-700 text-white px-4 py-2 rounded-md'
+                    >
+                      Update
+                    </button>
+                  </TableCell>
+                  <TableCell align="center">
+                    <button
+                      onClick={() => handleDelete(row.id)}
+                      className='bg-red-600 text-white px-4 py-2 rounded-md'
+                    >
+                      Delete
+                    </button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -55,6 +103,6 @@ const Article = () => {
       </div>
     </>
   );
-}
+};
 
 export default Article;
